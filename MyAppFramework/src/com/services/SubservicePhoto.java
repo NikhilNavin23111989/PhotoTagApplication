@@ -54,6 +54,11 @@ public class SubservicePhoto  implements Subservice{
 		ArrayList<Iproxy> res = new ArrayList<>();
 		String p = (String)payload.get("FILTER");
 		Properties tabledata = new Properties();
+		
+	}
+	
+	private Iproxy searchPid(Properties payload){
+		
 		tabledata.put("PID",payload.get(p));
 		ArrayList<Properties> r = null;
 		try{
@@ -73,7 +78,6 @@ public class SubservicePhoto  implements Subservice{
 		}
 		return new ListProxy(res);
 	}
-
 	@Override
 	public Iproxy handleTag(Properties payload) {
 		PhotoProxy p = (PhotoProxy)payload.get("DATA");
