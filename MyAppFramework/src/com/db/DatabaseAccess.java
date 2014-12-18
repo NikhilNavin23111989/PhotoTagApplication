@@ -4,7 +4,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Properties;
@@ -12,30 +11,41 @@ import java.util.Properties;
 public class DatabaseAccess implements DbConnection {
 
 	private static DatabaseAccess dbconnection = new DatabaseAccess();
-	private static String db="jdbc:sqlite:C://Users//Lenovo//Documents//understanding//myjava//Application//db//mydb.db";
-	private Connection connection ;
+	private static String db="";
+	private static Connection connection ;
 	
 	private static boolean created = false;
 	
-	private PreparedStatement addphoto,getphoto,addtag;
+	private static PreparedStatement addphoto,getphoto,addtag,getphototag;
 	
 	{
 		
 		
 	}
 
-	private DatabaseAccess(){
-		try{
-		init();
+	private DatabaseAccess(){}
+	
+	
+	public  static boolean createDB(String Path){
+		
+		if(!created){
+			try {
+				db=Path;//"jdbc:sqlite:C://Users//Lenovo//Documents//understanding//myjava//Application//db//mydb.db";
+				init();
+				created=true;
+				return true;
+				
+			} catch (Exception e) {
+				// TODO: handle exception
+			}
+
 		}
-		catch(Exception e){
-			
-			System.out.println("db exception:"+e.getMessage());
-		}
+		
+		return false;
 	}
 	
-	private void init() throws Exception{
-		db="jdbc:sqlite:C://Users//Lenovo//Documents//understanding//myjava//Application//db//mydb.db";
+	private  static void init() throws Exception{
+		
 		System.out.println("init called :"+db);
 		connection = DriverManager.getConnection(db);
 		if(! created){
@@ -47,11 +57,12 @@ public class DatabaseAccess implements DbConnection {
 		createpreparedstatement();
 	}
 
-	private void createpreparedstatement() throws Exception {
+	private static void createpreparedstatement() throws Exception {
 		
 		addphoto = connection.prepareStatement("INSERT INTO photo_ (pid_ ,thumnail_ ,path_ ) VALUES (?,?,?)");
 		addtag = connection.prepareStatement("INSERT INTO tag_ (imageid_ ,tagname_ ) VALUES (?,?)");
-		getphoto= connection.prepareStatement("SELECT *  FROM photo_  WHERE pid_ > ?");
+		getphoto= connection.prepareStatement("SELECT *  FROM photo_  WHERE pid_ = ?");
+		//getphototag= connection.prepareStatement("SELECT pid_  FROM (SELECT *  FROM photo_ INNER JOIN tag_   ON photo_.pid_ = tag_.imageid_) WHERE tagname_ IN []");
 	}
 
 	public static DatabaseAccess getInstance() {
@@ -72,7 +83,7 @@ public class DatabaseAccess implements DbConnection {
 		addphoto.setString(3, path);
 
 		addphoto.execute();
-		System.out.println("added photo succesfully");
+		//System.out.println("added photo succesfully");
 
 	}
 
@@ -94,7 +105,7 @@ public class DatabaseAccess implements DbConnection {
 		}
 		
 		
-		System.out.println("added tags succesfully");
+		//System.out.println("added tags succesfully");
 		
 	}
 
@@ -104,11 +115,14 @@ public class DatabaseAccess implements DbConnection {
 		// handle cases for namesearch,pid search
 		ArrayList<Properties> result = new ArrayList<Properties>();
 		int pid = (Integer)p.get("PID");
-		getphoto.setInt(1, pid);
+		getphoto.setInt(1,0);
 		
 		ResultSet rs=getphoto.executeQuery();
+		int c =0;
+		
 		while(rs.next())
 	      {
+			c=c+1;
 	        Properties retp = new Properties();
 	        retp.put("PID",rs.getInt("pid_"));// read the result set
 	       retp.put("PATH",rs.getString("path_"));
@@ -117,14 +131,57 @@ public class DatabaseAccess implements DbConnection {
 	        
 	      }
 		
-
+        
 
 	      
 	      return result;
 	}
 
+	@Override
+	public ArrayList<Properties> getPhotoforTags(Properties p) throws Exception {
+		// handle cases for namesearch,pid search
+		ArrayList<Properties> result = new ArrayList<Properties>();
+		ArrayList<String> tags = (ArrayList<String>) p.get("TAGS");
+		String query = "SELECT * FROM photo_ WHERE photo_.pid_  IN (SELECT imageid_ FROM tag_  WHERE tag_.tagname_ IN  ( "+makePlaceholders(tags.size())+") )" ;
+		String inlists = "( ";
 
 
+		inlists=inlists+" )";
+		PreparedStatement st = connection.prepareStatement(query);
+		for (int i = 0; i < tags.size(); i++) {
+
+			st.setString(i+1, tags.get(i));
+			
+		}
+		//query.setString(1,"'abc_1','abc_2'");
+		ResultSet rs = st.executeQuery();
+		int c=0;
+		while (rs.next()) {
+			c=c+1;
+			Properties retp = new Properties();
+			retp.put("PID", rs.getInt("pid_"));// read the result set
+			System.out.println("pid: "+rs.getString("pid_"));
+			result.add(retp);
+		}
+
+		System.out.println("count "+c);
+		return result;
+	}
+	
+	
+	String makePlaceholders(int len) {
+	    if (len < 1) {
+	        // It will lead to an invalid query anyway ..
+	        throw new RuntimeException("No placeholders");
+	    } else {
+	        StringBuilder sb = new StringBuilder(len * 2 - 1);
+	        sb.append("?");
+	        for (int i = 1; i < len; i++) {
+	            sb.append(",?");
+	        }
+	        return sb.toString();
+	    }
+	}
 	
 	
 }

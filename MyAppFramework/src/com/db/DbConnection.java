@@ -17,6 +17,6 @@ public interface DbConnection {
 	public void addTag(Properties p)throws Exception;
 	
 	public ArrayList<Properties> getPhoto(Properties p) throws Exception;
-	
+	public ArrayList<Properties> getPhotoforTags(Properties p) throws Exception;
 
 }

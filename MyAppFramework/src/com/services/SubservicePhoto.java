@@ -51,16 +51,48 @@ public class SubservicePhoto  implements Subservice{
 	@Override
 	public Iproxy handleSearch(Properties payload) {
 		
+		Iproxy result=null;
 		ArrayList<Iproxy> res = new ArrayList<>();
 		String p = (String)payload.get("FILTER");
-		Properties tabledata = new Properties();
+		if(p=="PID"){
+			result= searchPid(payload);
+		}
+		if(p=="TAG"){
+			
+			result= searchTag(payload);
+		}
 		
+		return result;
 	}
 	
-	private Iproxy searchPid(Properties payload){
-		
-		tabledata.put("PID",payload.get(p));
+	private Iproxy searchTag(Properties payload) {
+		Properties tabledata = new Properties();
+		tabledata.put("TAGS",payload.get("TAGS"));
 		ArrayList<Properties> r = null;
+		ArrayList<Iproxy> res=new ArrayList<>();
+		try{
+			r=DatabaseAccess.getInstance().getPhotoforTags(payload);
+			}
+			catch(Exception e){
+				
+				System.out.println("DAO excetion:"+e.getMessage());
+			}
+		for(Properties photo : r){
+			
+			PhotoProxy picture = new PhotoProxy();
+			picture.setPid((Integer)photo.get("PID"));
+			picture.setImage((String)photo.get("PATH"));
+			picture.setIcon((String)photo.get("THUMBNAIL"));
+			res.add(picture);
+		}
+		return new ListProxy(res);
+	}
+
+	private Iproxy searchPid(Properties payload){
+		Properties tabledata = new Properties();
+		tabledata.put("PID",payload.get("PID"));
+		ArrayList<Properties> r = null;
+		ArrayList<Iproxy> res=new ArrayList<>();
 		try{
 			r=DatabaseAccess.getInstance().getPhoto(tabledata);
 			}
